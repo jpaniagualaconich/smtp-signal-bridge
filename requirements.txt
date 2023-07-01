@@ -1,0 +1,2 @@
+aiosignald==0.3.7
+aiosmtpd==1.4.4.post2
