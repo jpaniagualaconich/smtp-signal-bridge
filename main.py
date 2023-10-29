@@ -31,15 +31,21 @@ class CustomHandler:
         else:
             body = msg.get_payload(decode=True)
 
+        signal_message_lines = []
+
         tokenized_from = msg['From'].split(' ')
         sender_name = ' '.join(tokenized_from[:-1])
         signal_sender = mail_from.split('@')[0]
+        if sender_name:
+            signal_message_lines.append('📨️ {sender_name}\n')
 
-        signal_message = (
-            f'📨️ {sender_name}\n'
-            f'Subject: {msg["Subject"]}\n\n'
-            f'{body.decode("utf-8")}'
-        )
+        subject, subject_encoding = email.header.decode_header(msg['Subject'])[0]
+        if subject_encoding:
+            subject = subject.decode(subject_encoding)
+
+        signal_message_lines.append(f'🏷️ {subject or "(no subject)"}\n')
+        signal_message_lines.append(body.decode("utf-8"))
+        signal_message = '\n'.join(signal_message_lines)
 
         loop = asyncio.get_running_loop()
         _, signald_api = await loop.create_unix_connection(SignaldAPI, path=socket_path)
