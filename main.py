@@ -1,10 +1,17 @@
 import asyncio
+import logging
 import os
 import email
 
 from aiosignald import SignaldAPI
 from aiosmtpd.controller import UnthreadedController
 
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 socket_path = os.getenv('SIGNALD_SOCKET_PATH') or '/signald/signald.sock'
 smtp_port = int(os.getenv('SMTP_PORT') or '587')
@@ -59,30 +66,31 @@ class CustomHandler:
                     recipientAddress=signal_rcpt,
                     messageBody=signal_message,
                 )
-                print(f'sent to {signal_rcpt}')
+                logger.info(f'sent to {signal_rcpt}')
 
             response = '250 OK'
+            logger.info(response)
 
         except Exception as exc:
             response = f'500 Could not send email: {exc}'
+            logger.error(response)
 
-        print(response)
         return response
 
 
 if __name__ == "__main__":
-    print('server init')
+    logger.info('server init')
     loop = asyncio.get_event_loop()
 
     handler = CustomHandler()
     controller = UnthreadedController(handler, hostname='0.0.0.0', port=smtp_port, loop=loop)
     controller.begin()
-    print('server begin')
+    logger.info('server begin')
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        print('received SIGINT. Terminating...')
+        logger.info('received SIGINT. Terminating...')
 
     controller.end()
-    print('server end')
+    logger.info('server end')
